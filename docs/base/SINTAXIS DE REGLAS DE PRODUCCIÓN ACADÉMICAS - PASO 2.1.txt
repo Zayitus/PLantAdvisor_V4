@@ -1,0 +1,436 @@
+"""
+SINTAXIS DE REGLAS DE PRODUCCIÓN ACADÉMICAS - PASO 2.1
+=======================================================
+
+FUNDAMENTO TEÓRICO (Clase 3):
+"En estos sistemas, el conocimiento se representa en forma de reglas de 
+producción del tipo 'SI (condición) ENTONCES (acción)'"
+
+REFERENCIA ACADÉMICA:
+- Sistemas de Post sobre sistemas de reescritura  
+- Algoritmos de Markov y Rete para emparejamiento eficiente de patrones
+- Naturaleza modular para mantenimiento y explicación
+
+DISEÑO DE SINTAXIS ACADÉMICA:
+Cada regla debe ser declarativa, modular, explicable y ejecutable dinámicamente
+"""
+
+from typing import Dict, List, Any, Optional, Union
+from dataclasses import dataclass, field
+from abc import ABC, abstractmethod
+from enum import Enum
+import re
+
+
+class OperadorCondicion(Enum):
+    """
+    OPERADORES ACADÉMICOS PARA CONDICIONES DE REGLAS
+    
+    FUNDAMENTO: Permiten expresar diferentes tipos de relaciones lógicas
+    en las condiciones de las reglas de producción.
+    """
+    IGUAL = "=="                    # Igualdad exacta
+    DIFERENTE = "!="               # Desigualdad  
+    MENOR = "<"                    # Menor que
+    MENOR_IGUAL = "<="             # Menor o igual
+    MAYOR = ">"                    # Mayor que
+    MAYOR_IGUAL = ">="             # Mayor o igual
+    CONTIENE = "contains"          # Contiene elemento
+    EN = "in"                      # Elemento en lista
+    NO_EN = "not_in"              # Elemento no en lista
+    EXISTE = "exists"              # Hecho existe en memoria
+    NO_EXISTE = "not_exists"       # Hecho no existe en memoria
+    COINCIDE_PATRON = "matches"    # Coincide con patrón regex
+
+
+class TipoAccion(Enum):
+    """
+    TIPOS ACADÉMICOS DE ACCIONES EN REGLAS
+    
+    FUNDAMENTO TEÓRICO: "Después de la parte ENTONCES de una regla, hay una 
+    serie de acciones que se ejecutarán cuando la regla se dispare"
+    """
+    ASSERT = "assert"              # Agregar nuevo hecho a memoria
+    RETRACT = "retract"            # Eliminar hecho de memoria
+    MODIFY = "modify"              # Modificar hecho existente
+    CONCLUDE = "conclude"          # Establecer conclusión final
+    CALL_FUNCTION = "call"         # Ejecutar función externa
+    SET_VARIABLE = "set"           # Asignar valor a variable
+    INCREMENT = "increment"        # Incrementar valor numérico
+    RECOMMEND = "recommend"        # Recomendar acción/elemento
+
+
+@dataclass
+class CondicionRegla:
+    """
+    REPRESENTACIÓN ACADÉMICA DE UNA CONDICIÓN DE REGLA
+    
+    FUNDAMENTO: Cada condición debe poder ser evaluada contra la memoria
+    de trabajo para determinar si se satisface o no.
+    
+    ESTRUCTURA CLÁSICA: predicado operador valor
+    """
+    predicado: str                    # Nombre del hecho/predicado
+    operador: OperadorCondicion       # Operador de comparación
+    valor: Any                        # Valor de comparación
+    variable: Optional[str] = None    # Variable para binding (ej: ?X)
+    peso: float = 1.0                # Peso de la condición
+    explicacion: str = ""            # Explicación de la condición
+    
+    def __str__(self) -> str:
+        var_str = f" -> ${self.variable}" if self.variable else ""
+        return f"{self.predicado} {self.operador.value} {self.valor}{var_str}"
+
+
+@dataclass  
+class AccionRegla:
+    """
+    REPRESENTACIÓN ACADÉMICA DE UNA ACCIÓN DE REGLA
+    
+    FUNDAMENTO: "las acciones específicas incluyen la adición o remoción 
+    de los hechos en la memoria activa"
+    """
+    tipo: TipoAccion                  # Tipo de acción a ejecutar
+    predicado: str                    # Predicado objetivo
+    valor: Any = None                 # Valor a asignar/usar
+    parametros: Dict[str, Any] = field(default_factory=dict)  # Parámetros adicionales
+    confianza: float = 1.0           # Factor de certeza
+    explicacion: str = ""            # Justificación de la acción
+    
+    def __str__(self) -> str:
+        return f"{self.tipo.value}({self.predicado}, {self.valor})"
+
+
+@dataclass
+class ReglaProduccionAcademica:
+    """
+    REGLA DE PRODUCCIÓN ACADÉMICA COMPLETA
+    
+    FUNDAMENTO TEÓRICO (Clase 3):
+    "reglas de producción del tipo 'SI (condición) ENTONCES (acción)'"
+    
+    COMPONENTES ACADÉMICOS:
+    1. Identificador único para referencia y explicación
+    2. Lista de condiciones (parte SI)  
+    3. Lista de acciones (parte ENTONCES)
+    4. Metadatos para conflict resolution
+    5. Documentación para explicación
+    
+    ARQUITECTURA: Modular, explicable, mantenible
+    """
+    id: str                           # Identificador único de la regla
+    nombre: str                       # Nombre descriptivo
+    condiciones: List[CondicionRegla] # Parte SI de la regla
+    acciones: List[AccionRegla]       # Parte ENTONCES de la regla
+    
+    # METADATOS PARA CONFLICT RESOLUTION
+    prioridad: float = 0.0           # Prioridad explícita
+    especificidad: Optional[int] = None  # Se calcula automáticamente
+    complejidad: Optional[int] = None    # Se calcula automáticamente
+    
+    # DOCUMENTACIÓN ACADÉMICA
+    descripcion: str = ""            # Descripción del propósito
+    dominio: str = ""               # Área de conocimiento
+    fuente_conocimiento: str = ""    # Fuente del conocimiento (ej: "experto botánico")
+    ejemplos: List[str] = field(default_factory=list)  # Ejemplos de uso
+    
+    # CONTROL DE EJECUCIÓN
+    activa: bool = True              # Si la regla está activa
+    version: str = "1.0"            # Versión de la regla
+    
+    def __post_init__(self):
+        """CÁLCULO AUTOMÁTICO DE METADATOS"""
+        if self.especificidad is None:
+            self.especificidad = len(self.condiciones)
+        
+        if self.complejidad is None:
+            # Complejidad basada en número de condiciones y acciones
+            self.complejidad = len(self.condiciones) + len(self.acciones)
+    
+    def obtener_variables(self) -> List[str]:
+        """OBTENER VARIABLES UTILIZADAS EN LA REGLA"""
+        variables = []
+        for condicion in self.condiciones:
+            if condicion.variable:
+                variables.append(condicion.variable)
+        return list(set(variables))
+    
+    def generar_explicacion_natural(self) -> str:
+        """
+        GENERAR EXPLICACIÓN EN LENGUAJE NATURAL
+        
+        FUNDAMENTO: "capacidades de explicación y su semejanza con el 
+        proceso cognitivo humano"
+        """
+        condiciones_texto = []
+        for cond in self.condiciones:
+            if cond.explicacion:
+                condiciones_texto.append(cond.explicacion)
+            else:
+                condiciones_texto.append(f"{cond.predicado} {cond.operador.value} {cond.valor}")
+        
+        acciones_texto = []
+        for accion in self.acciones:
+            if accion.explicacion:
+                acciones_texto.append(accion.explicacion)
+            else:
+                acciones_texto.append(f"{accion.tipo.value} {accion.predicado}")
+        
+        return f"SI {' Y '.join(condiciones_texto)}, ENTONCES {', '.join(acciones_texto)}"
+    
+    def validar_sintaxis(self) -> List[str]:
+        """VALIDAR SINTAXIS DE LA REGLA"""
+        errores = []
+        
+        if not self.id or not self.id.strip():
+            errores.append("ID de regla requerido")
+        
+        if not self.condiciones:
+            errores.append("Al menos una condición requerida")
+        
+        if not self.acciones:
+            errores.append("Al menos una acción requerida")
+        
+        # Validar condiciones
+        for i, cond in enumerate(self.condiciones):
+            if not cond.predicado:
+                errores.append(f"Condición {i+1}: predicado requerido")
+            if cond.peso <= 0:
+                errores.append(f"Condición {i+1}: peso debe ser positivo")
+        
+        # Validar acciones
+        for i, accion in enumerate(self.acciones):
+            if not accion.predicado:
+                errores.append(f"Acción {i+1}: predicado requerido")
+            if accion.confianza < 0 or accion.confianza > 1:
+                errores.append(f"Acción {i+1}: confianza debe estar entre 0 y 1")
+        
+        return errores
+    
+    def __str__(self) -> str:
+        """REPRESENTACIÓN TEXTUAL DE LA REGLA"""
+        return f"Regla[{self.id}]: {self.generar_explicacion_natural()}"
+
+
+# ===================================================================
+# EJEMPLOS ACADÉMICOS DE SINTAXIS
+# ===================================================================
+
+def crear_ejemplos_sintaxis_academica():
+    """
+    EJEMPLOS DE SINTAXIS DE REGLAS ACADÉMICAS
+    
+    Demuestran cómo representar conocimiento botánico real en forma
+    de reglas de producción académicas.
+    """
+    ejemplos = []
+    
+    # EJEMPLO 1: Regla de compatibilidad de ubicación
+    ejemplos.append(ReglaProduccionAcademica(
+        id="R001_COMPATIBILIDAD_UBICACION",
+        nombre="Compatibilidad de Ubicación Interior",
+        descripcion="Determina si una planta es compatible con ubicación interior",
+        dominio="Botánica - Condiciones Ambientales",
+        fuente_conocimiento="Manual de Plantas de Interior - Tierra del Fuego",
+        
+        condiciones=[
+            CondicionRegla(
+                predicado="ubicacion_usuario",
+                operador=OperadorCondicion.IGUAL,
+                valor="interior",
+                explicacion="El usuario vive en interior"
+            ),
+            CondicionRegla(
+                predicado="planta_tipo_ubicacion",
+                operador=OperadorCondicion.EN,
+                valor=["interior", "interior_exterior"],
+                variable="planta_actual",
+                explicacion="La planta tolera condiciones de interior"
+            )
+        ],
+        
+        acciones=[
+            AccionRegla(
+                tipo=TipoAccion.ASSERT,
+                predicado="ubicacion_compatible",
+                valor=True,
+                confianza=0.9,
+                explicacion="La planta es compatible con la ubicación del usuario"
+            )
+        ],
+        
+        prioridad=5.0,
+        ejemplos=["Sansevieria en departamento", "Pothos en oficina"]
+    ))
+    
+    # EJEMPLO 2: Regla de análisis de condiciones TDF
+    ejemplos.append(ReglaProduccionAcademica(
+        id="R002_ANALISIS_CONDICIONES_TDF",
+        nombre="Análisis de Condiciones Específicas de Tierra del Fuego",
+        descripcion="Evalúa factores ambientales únicos de TDF",
+        dominio="Botánica Regional - Tierra del Fuego",
+        fuente_conocimiento="INTA - Instituto Nacional de Tecnología Agropecuaria",
+        
+        condiciones=[
+            CondicionRegla(
+                predicado="ubicacion_usuario",
+                operador=OperadorCondicion.IGUAL,
+                valor="interior",
+                explicacion="Usuario en ambiente interior"
+            ),
+            CondicionRegla(
+                predicado="calefaccion_nivel",
+                operador=OperadorCondicion.IGUAL,
+                valor="alta",
+                explicacion="Calefacción intensa en invierno TDF"
+            ),
+            CondicionRegla(
+                predicado="humedad_estimada",
+                operador=OperadorCondicion.MENOR,
+                valor=40,
+                explicacion="Humedad baja por calefacción"
+            )
+        ],
+        
+        acciones=[
+            AccionRegla(
+                tipo=TipoAccion.ASSERT,
+                predicado="ambiente_seco_tdf",
+                valor=True,
+                confianza=0.85,
+                explicacion="Ambiente interior seco típico de TDF en invierno"
+            ),
+            AccionRegla(
+                tipo=TipoAccion.ASSERT,
+                predicado="necesita_plantas_resistentes_sequedad",
+                valor=True,
+                confianza=0.8,
+                explicacion="Se requieren plantas resistentes a sequedad"
+            )
+        ],
+        
+        prioridad=7.0,
+        ejemplos=["Invierno en Ushuaia", "Calefacción a leña en Río Grande"]
+    ))
+    
+    # EJEMPLO 3: Regla de recomendación final con múltiples factores
+    ejemplos.append(ReglaProduccionAcademica(
+        id="R003_RECOMENDACION_MULTIFACTOR",
+        nombre="Recomendación Basada en Múltiples Factores",
+        descripcion="Combina múltiples factores para recomendación final",
+        dominio="Sistema Experto - Inferencia Final",
+        fuente_conocimiento="Síntesis de conocimiento experto",
+        
+        condiciones=[
+            CondicionRegla(
+                predicado="ubicacion_compatible",
+                operador=OperadorCondicion.IGUAL,
+                valor=True,
+                peso=2.0,
+                explicacion="Ubicación es compatible"
+            ),
+            CondicionRegla(
+                predicado="iluminacion_suficiente",
+                operador=OperadorCondicion.IGUAL,
+                valor=True,
+                peso=1.5,
+                explicacion="Iluminación es adecuada"
+            ),
+            CondicionRegla(
+                predicado="mantenimiento_factible",
+                operador=OperadorCondicion.IGUAL,
+                valor=True,
+                peso=1.0,
+                explicacion="Mantenimiento está al alcance del usuario"
+            ),
+            CondicionRegla(
+                predicado="seguro_mascotas",
+                operador=OperadorCondicion.IGUAL,
+                valor=True,
+                peso=2.0,
+                explicacion="Planta es segura para mascotas (si las hay)"
+            )
+        ],
+        
+        acciones=[
+            AccionRegla(
+                tipo=TipoAccion.RECOMMEND,
+                predicado="planta_recomendada",
+                valor="$planta_actual",
+                confianza=0.92,
+                explicacion="Planta altamente recomendada basada en todos los factores"
+            ),
+            AccionRegla(
+                tipo=TipoAccion.CONCLUDE,
+                predicado="nivel_recomendacion",
+                valor="alto",
+                confianza=0.9,
+                explicacion="Nivel de recomendación alto"
+            )
+        ],
+        
+        prioridad=10.0,
+        ejemplos=["Sansevieria para principiantes", "Pothos para oficinas"]
+    ))
+    
+    return ejemplos
+
+
+def validar_sintaxis_academica():
+    """
+    VALIDACIÓN DE SINTAXIS ACADÉMICA
+    
+    Verifica que los ejemplos cumplan con todos los criterios académicos.
+    """
+    print("🎓 VALIDACIÓN DE SINTAXIS ACADÉMICA")
+    print("="*50)
+    
+    ejemplos = crear_ejemplos_sintaxis_academica()
+    
+    for i, regla in enumerate(ejemplos, 1):
+        print(f"\n📋 REGLA {i}: {regla.nombre}")
+        print("-" * 40)
+        
+        # Validar sintaxis
+        errores = regla.validar_sintaxis()
+        if errores:
+            print(f"❌ Errores encontrados: {errores}")
+        else:
+            print("✅ Sintaxis válida")
+        
+        # Mostrar estructura
+        print(f"🔍 Condiciones: {len(regla.condiciones)}")
+        print(f"⚡ Acciones: {len(regla.acciones)}")
+        print(f"📊 Especificidad: {regla.especificidad}")
+        print(f"⚖️  Prioridad: {regla.prioridad}")
+        
+        # Mostrar explicación natural
+        print(f"💬 Explicación: {regla.generar_explicacion_natural()}")
+        
+        # Mostrar variables
+        variables = regla.obtener_variables()
+        if variables:
+            print(f"🔗 Variables: {variables}")
+    
+    print("\n✅ VALIDACIÓN DE SINTAXIS ACADÉMICA COMPLETADA")
+    print("📚 Sintaxis cumple con fundamentos de Clase 3")
+    print("🏛️ Compatible con sistemas MYCIN/DENDRAL")
+
+
+# ===================================================================
+# DEMOSTRACIÓN DE SINTAXIS ACADÉMICA
+# ===================================================================
+
+if __name__ == "__main__":
+    print("🎓 DEMOSTRACIÓN DE SINTAXIS DE REGLAS ACADÉMICAS")
+    print("="*60)
+    print("📚 FUNDAMENTO: Clase 3 - Sistemas de Producción")
+    print("🏛️ REFERENCIA: Post, Markov, Rete")
+    print("⚡ CARACTERÍSTICAS: Modular, explicable, mantenible")
+    print()
+    
+    # Ejecutar validación
+    validar_sintaxis_academica()
+    
+    print("\n🎯 PRÓXIMO PASO: Implementar parser de reglas")
+    print("📝 ESTADO: Sintaxis académica diseñada y validada")

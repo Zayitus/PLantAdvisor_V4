@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlantAdvisor TDF - Sistema Experto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f8fafc;
+        }
+        .loader { border-top-color: #16a34a; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .card-hover-effect {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        .card-hover-effect:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+        <header class="text-center mb-10">
+            <div class="inline-block bg-green-100 text-green-700 p-4 rounded-full mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M17.707 9.293l-7-7a1 1 0 00-1.414 0l-7 7A1 1 0 003 11v7a1 1 0 001 1h2a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h2a1 1 0 001-1v-7a1 1 0 00-.293-.707zM15 18H5a1 1 0 01-1-1v-6.586l6-6 6 6V17a1 1 0 01-1 1z"/>
+                  <path d="M10 3.586l-4.707 4.707A1 1 0 006 10v7h2v-4a3 3 0 016 0v4h2v-7a1 1 0 00-.293-.707L10 3.586z"/>
+                </svg>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-900">PlantAdvisor TDF</h1>
+            <p class="text-lg text-slate-600 mt-2">Tu asistente experto para la flora de Tierra del Fuego</p>
+        </header>
+
+        <main class="bg-white p-6 md:p-8 rounded-2xl shadow-xl border border-slate-200">
+            <form id="consulta-form">
+                <fieldset>
+                    <legend class="text-2xl font-semibold mb-6 text-slate-800 w-full border-b border-slate-200 pb-4">Describe tu entorno y preferencias</legend>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                        
+                        <!-- Ubicación -->
+                        <div class="flex items-center space-x-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                            <div class="w-full">
+                                <label for="ubicacion_usuario" class="block text-sm font-medium text-slate-700">Ubicación</label>
+                                <select id="ubicacion_usuario" name="ubicacion_usuario" class="mt-1 w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+                                    <option value="interior">Interior</option>
+                                    <option value="exterior">Exterior</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Nivel de Luz -->
+                        <div class="flex items-center space-x-3">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                            <div class="w-full">
+                                <label for="iluminacion_disponible" class="block text-sm font-medium text-slate-700">Nivel de luz</label>
+                                <select id="iluminacion_disponible" name="iluminacion_disponible" class="mt-1 w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 transition">
+                                    <option value="baja">Baja (lejos de ventanas)</option>
+                                    <option value="media">Media (luz indirecta)</option>
+                                    <option value="alta">Alta (sol directo)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Nivel de Mantenimiento -->
+                        <div class="flex items-center space-x-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <div class="w-full">
+                                <label for="experiencia_usuario" class="block text-sm font-medium text-slate-700">Tu nivel de experiencia</label>
+                                <select id="experiencia_usuario" name="experiencia_usuario" class="mt-1 w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 transition">
+                                    <option value="principiante">Principiante</option>
+                                    <option value="intermedio">Intermedio</option>
+                                    <option value="avanzado">Avanzado</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Propósito -->
+                        <div class="flex items-center space-x-3">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                            <div class="w-full">
+                                <label for="proposito_planta" class="block text-sm font-medium text-slate-700">Propósito principal</label>
+                                <select id="proposito_planta" name="proposito_planta" class="mt-1 w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 transition">
+                                    <option value="decorativa">Decorativa</option>
+                                    <option value="flores">Flores llamativas</option>
+                                    <option value="aromatica">Aromática</option>
+                                    <option value="utilitaria">Utilitaria</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                         <!-- Calefacción -->
+                        <div class="flex items-center space-x-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10s5 2 5 2a8.003 8.003 0 013.657 6.657z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.343 17.657A8 8 0 0117.657 9.343S17 11 15 12s-5 2-5 2a8.003 8.003 0 01-3.657-6.657z" /></svg>
+                            <div class="w-full">
+                                <label for="calefaccion_nivel" class="block text-sm font-medium text-slate-700">Calefacción (invierno)</label>
+                                <select id="calefaccion_nivel" name="calefaccion_nivel" class="mt-1 w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 transition">
+                                    <option value="baja">Baja / Ocasional</option>
+                                    <option value="media">Media</option>
+                                    <option value="alta">Alta / Constante</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Mascotas -->
+                        <div class="flex items-center space-x-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                             <div class="w-full">
+                                <label class="block text-sm font-medium text-slate-700">¿Tienes mascotas?</label>
+                                <div class="flex items-center space-x-4 mt-2">
+                                    <label class="flex items-center">
+                                        <input type="radio" name="mascotas_presentes" value="true" class="h-4 w-4 text-green-600 border-slate-300 focus:ring-green-500">
+                                        <span class="ml-2 text-slate-700">Sí</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" name="mascotas_presentes" value="false" checked class="h-4 w-4 text-green-600 border-slate-300 focus:ring-green-500">
+                                        <span class="ml-2 text-slate-700">No</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+                <div class="mt-8 text-center">
+                    <button type="submit" class="bg-green-600 text-white font-bold py-3 px-10 rounded-full hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        Consultar al Experto
+                    </button>
+                </div>
+            </form>
+        </main>
+
+        <section id="resultados" class="mt-10 hidden">
+            <h2 class="text-3xl font-bold mb-6 text-slate-800 text-center">Análisis del Experto</h2>
+            <div id="loader" class="flex justify-center items-center h-40">
+                <div class="loader ease-linear rounded-full border-8 border-t-8 border-slate-200 h-20 w-20"></div>
+                <p class="ml-5 text-slate-600 text-lg">El sistema experto está razonando...</p>
+            </div>
+            <div id="contenido-resultados" class="hidden"></div>
+        </section>
+        
+        <footer class="text-center mt-12 text-sm text-slate-500">
+            <p>Sistema Experto Académico v1.3 - Diseño Mejorado</p>
+        </footer>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>

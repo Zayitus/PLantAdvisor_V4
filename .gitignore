@@ -1,0 +1,299 @@
+# ========================================
+# .gitignore para PlantAdvisor TDF
+# Sistema Experto Python + Flask
+# ========================================
+
+# ====== PYTHON ======
+# Bytecode cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribución / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# Pipenv
+Pipfile.lock
+
+# Poetry
+poetry.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# ====== ENTORNOS VIRTUALES ======
+# Env
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Virtualenv
+pyvenv.cfg
+
+# ====== IDEs y EDITORES ======
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ====== FLASK ESPECÍFICO ======
+# Flask instance folder
+instance/
+
+# Flask-WTF CSRF token
+csrf_token
+
+# Flask uploads
+uploads/
+
+# Flask logs
+*.log
+logs/
+
+# Flask database
+*.db
+*.sqlite
+*.sqlite3
+
+# Flask migrations
+migrations/versions/*.pyc
+
+# ====== SISTEMA OPERATIVO ======
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ====== DESARROLLO ======
+# Logs generales
+*.log
+logs/
+log/
+
+# Archivos temporales
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Archivos de backup
+*.bak
+*.backup
+*~
+
+# Node.js (si usas herramientas frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ====== ESPECÍFICO DEL PROYECTO ======
+# Archivos de configuración local
+config_local.py
+local_settings.py
+
+# Archivos de datos temporales
+data/temp/
+data/cache/
+cache/
+
+# Archivos de demostración que no queremos subir
+demo_data/
+test_images/
+
+# Archivos de desarrollo personal
+TODO.md
+NOTES.md
+scratch.py
+test_personal.py
+
+# Archivos de entorno de desarrollo
+.env.local
+.env.development
+.env.test
+
+# Archivos de depuración
+debug.py
+debug_*
+
+# ====== DOCUMENTACIÓN TEMPORAL ======
+# Borradores
+draft_*
+borrador_*
+*_draft.*
+
+# Archivos de trabajo
+working_*
+temp_*
+
+# ====== ARCHIVOS MULTIMEDIA GRANDES ======
+# Evitar subir archivos muy grandes por error
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mkv
+
+# Imágenes grandes de desarrollo
+*_large.*
+*_huge.*
+*_original.*
+
+# ====== SEGURIDAD ======
+# Claves y secretos
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+.secrets
+credentials.json
+service_account.json
+
+# Variables de entorno con secretos
+.env.production
+.env.secrets
+
+# ====== OTROS ======
+# Archivos comprimidos temporales
+*.zip
+*.tar.gz
+*.tar.bz2
+*.rar
+*.7z
+
+# Archivos de sistema
+.htaccess
+.htpasswd
+
+# Archivos de monitoreo
+monitoring/
+metrics/
+
+# ====== COMENTARIOS FINALES ======
+# Este .gitignore está optimizado para:
+# - Proyectos Python con Flask
+# - Desarrollo en múltiples sistemas operativos  
+# - Trabajo con IDEs populares
+# - Seguridad y buenas prácticas
+# - Específico para PlantAdvisor TDF

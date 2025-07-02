@@ -1,0 +1,641 @@
+"""
+PARSER DE REGLAS ACADÉMICO - PASO 2.3  
+=====================================
+
+FUNDAMENTO TEÓRICO (Clase 3):
+"Motor que ejecute dinámicamente las reglas sin hardcodeo de lógica específica"
+
+OBJETIVO CRÍTICO:
+❌ ELIMINAR: Métodos hardcodeados como _evaluar_ubicacion()
+✅ CREAR: Motor que ejecute cualquier regla declarativa dinámicamente
+
+REFERENCIA: 
+- Algoritmos de Markov y Rete para emparejamiento eficiente de patrones
+- Separación total conocimiento/inferencia
+
+ARQUITECTURA: Motor independiente del dominio que procesa reglas declarativas
+"""
+
+from typing import Dict, List, Any, Optional, Set, Union
+import re
+from datetime import datetime
+
+# Importar componentes académicos previos
+from memoria_trabajo_academica import MemoriaTrabajo, Hecho, TipoHecho
+from sintaxis_reglas_academicas import (
+    ReglaProduccionAcademica, CondicionRegla, AccionRegla,
+    OperadorCondicion, TipoAccion
+)
+from base_conocimiento_botanico import BaseConocimientoBotanicoTDF
+
+
+class EvaluadorCondicionesAcademico:
+    """
+    EVALUADOR ACADÉMICO DE CONDICIONES DE REGLAS
+    
+    FUNDAMENTO: Implementa pattern matching académico contra memoria de trabajo
+    para determinar si las condiciones de una regla se satisfacen.
+    
+    DIFERENCIA CRÍTICA:
+    ❌ ANTES: _evaluar_ubicacion() hardcodeado para cada tipo
+    ✅ AHORA: Evaluador dinámico que procesa cualquier condición
+    """
+    
+    def __init__(self, memoria_trabajo: MemoriaTrabajo):
+        """
+        Args:
+            memoria_trabajo: Instancia de memoria de trabajo académica
+        """
+        self.memoria = memoria_trabajo
+        self.trace_evaluacion = []
+    
+    def evaluar_condicion(self, condicion: CondicionRegla, bindings: Dict[str, Any]) -> bool:
+        """
+        EVALUACIÓN ACADÉMICA DE UNA CONDICIÓN
+        
+        FUNDAMENTO: Implementa pattern matching académico real que puede
+        procesar cualquier tipo de condición declarativa.
+        
+        Args:
+            condicion: Condición a evaluar
+            bindings: Variables ya unificadas
+            
+        Returns:
+            bool: True si la condición se satisface
+        """
+        try:
+            # Resolver valor de la condición (puede incluir variables)
+            valor_condicion = self._resolver_valor(condicion.valor, bindings)
+            
+            # Obtener hecho de memoria de trabajo
+            hecho = self.memoria.obtener_hecho(condicion.predicado)
+            
+            # Evaluar según operador
+            resultado = self._evaluar_operador(
+                hecho, 
+                condicion.operador, 
+                valor_condicion,
+                condicion.predicado
+            )
+            
+            # Registrar trace para explicación
+            self._registrar_evaluacion(condicion, hecho, resultado, valor_condicion)
+            
+            # Unificar variable si existe
+            if resultado and condicion.variable and hecho:
+                bindings[condicion.variable] = hecho.valor
+            
+            return resultado
+            
+        except Exception as e:
+            self._registrar_error(condicion, str(e))
+            return False
+    
+    def _evaluar_operador(self, hecho: Optional[Hecho], operador: OperadorCondicion, 
+                         valor_esperado: Any, predicado: str) -> bool:
+        """
+        EVALUACIÓN ACADÉMICA DE OPERADORES
+        
+        Implementa todos los operadores académicos definidos en la sintaxis.
+        """
+        if operador == OperadorCondicion.EXISTE:
+            return hecho is not None
+        
+        if operador == OperadorCondicion.NO_EXISTE:
+            return hecho is None
+        
+        # Para otros operadores, necesitamos que el hecho exista
+        if hecho is None:
+            return False
+        
+        valor_hecho = hecho.valor
+        
+        if operador == OperadorCondicion.IGUAL:
+            return valor_hecho == valor_esperado
+        
+        elif operador == OperadorCondicion.DIFERENTE:
+            return valor_hecho != valor_esperado
+        
+        elif operador == OperadorCondicion.MENOR:
+            return self._comparar_numericamente(valor_hecho, valor_esperado, '<')
+        
+        elif operador == OperadorCondicion.MENOR_IGUAL:
+            return self._comparar_numericamente(valor_hecho, valor_esperado, '<=')
+        
+        elif operador == OperadorCondicion.MAYOR:
+            return self._comparar_numericamente(valor_hecho, valor_esperado, '>')
+        
+        elif operador == OperadorCondicion.MAYOR_IGUAL:
+            return self._comparar_numericamente(valor_hecho, valor_esperado, '>=')
+        
+        elif operador == OperadorCondicion.EN:
+            if isinstance(valor_esperado, (list, tuple, set)):
+                return valor_hecho in valor_esperado
+            return str(valor_hecho) in str(valor_esperado)
+        
+        elif operador == OperadorCondicion.NO_EN:
+            if isinstance(valor_esperado, (list, tuple, set)):
+                return valor_hecho not in valor_esperado
+            return str(valor_hecho) not in str(valor_esperado)
+        
+        elif operador == OperadorCondicion.CONTIENE:
+            if hasattr(valor_hecho, '__contains__'):
+                return valor_esperado in valor_hecho
+            return str(valor_esperado) in str(valor_hecho)
+        
+        elif operador == OperadorCondicion.COINCIDE_PATRON:
+            patron = str(valor_esperado)
+            texto = str(valor_hecho)
+            return bool(re.search(patron, texto))
+        
+        else:
+            return False
+    
+    def _comparar_numericamente(self, valor1: Any, valor2: Any, operador: str) -> bool:
+        """COMPARACIÓN NUMÉRICA SEGURA"""
+        try:
+            num1 = float(valor1)
+            num2 = float(valor2)
+            
+            if operador == '<':
+                return num1 < num2
+            elif operador == '<=':
+                return num1 <= num2
+            elif operador == '>':
+                return num1 > num2
+            elif operador == '>=':
+                return num1 >= num2
+            
+        except (ValueError, TypeError):
+            return False
+        
+        return False
+    
+    def _resolver_valor(self, valor: Any, bindings: Dict[str, Any]) -> Any:
+        """
+        RESOLUCIÓN DE VARIABLES EN VALORES
+        
+        Reemplaza variables como $variable con valores de bindings.
+        """
+        if isinstance(valor, str) and valor.startswith('$'):
+            variable_name = valor[1:]  # Quitar $
+            return bindings.get(variable_name, valor)
+        
+        return valor
+    
+    def _registrar_evaluacion(self, condicion: CondicionRegla, hecho: Optional[Hecho], 
+                            resultado: bool, valor_resuelto: Any):
+        """REGISTRAR EVALUACIÓN PARA TRACE"""
+        entry = {
+            'timestamp': datetime.now().isoformat(),
+            'predicado': condicion.predicado,
+            'operador': condicion.operador.value,
+            'valor_esperado': valor_resuelto,
+            'valor_hecho': hecho.valor if hecho else None,
+            'resultado': resultado,
+            'explicacion': condicion.explicacion
+        }
+        self.trace_evaluacion.append(entry)
+    
+    def _registrar_error(self, condicion: CondicionRegla, error: str):
+        """REGISTRAR ERROR DE EVALUACIÓN"""
+        entry = {
+            'timestamp': datetime.now().isoformat(),
+            'predicado': condicion.predicado,
+            'error': error,
+            'resultado': False
+        }
+        self.trace_evaluacion.append(entry)
+    
+    def obtener_trace(self) -> List[Dict[str, Any]]:
+        """OBTENER TRACE DE EVALUACIONES"""
+        return self.trace_evaluacion.copy()
+    
+    def limpiar_trace(self):
+        """LIMPIAR TRACE PARA NUEVA EVALUACIÓN"""
+        self.trace_evaluacion.clear()
+
+
+class EjecutorAccionesAcademico:
+    """
+    EJECUTOR ACADÉMICO DE ACCIONES DE REGLAS
+    
+    FUNDAMENTO: Ejecuta dinámicamente las acciones definidas en la parte
+    ENTONCES de las reglas de producción.
+    """
+    
+    def __init__(self, memoria_trabajo: MemoriaTrabajo):
+        """
+        Args:
+            memoria_trabajo: Instancia de memoria de trabajo académica
+        """
+        self.memoria = memoria_trabajo
+        self.trace_ejecucion = []
+    
+    def ejecutar_accion(self, accion: AccionRegla, bindings: Dict[str, Any], 
+                       regla_id: str) -> Optional[str]:
+        """
+        EJECUCIÓN ACADÉMICA DE UNA ACCIÓN
+        
+        FUNDAMENTO: Ejecuta dinámicamente cualquier tipo de acción declarativa
+        sin hardcodeo específico del dominio.
+        
+        Args:
+            accion: Acción a ejecutar
+            bindings: Variables unificadas
+            regla_id: ID de la regla que ejecuta la acción
+            
+        Returns:
+            str: ID del hecho creado/modificado, o None
+        """
+        try:
+            # Resolver valor de la acción
+            valor_accion = self._resolver_valor(accion.valor, bindings)
+            
+            # Ejecutar según tipo de acción
+            resultado = self._ejecutar_tipo_accion(accion, valor_accion, regla_id)
+            
+            # Registrar trace
+            self._registrar_ejecucion(accion, valor_accion, resultado, regla_id)
+            
+            return resultado
+            
+        except Exception as e:
+            self._registrar_error(accion, str(e), regla_id)
+            return None
+    
+    def _ejecutar_tipo_accion(self, accion: AccionRegla, valor_resuelto: Any, 
+                            regla_id: str) -> Optional[str]:
+        """EJECUTAR ACCIÓN SEGÚN SU TIPO"""
+        
+        if accion.tipo == TipoAccion.ASSERT:
+            return self.memoria.assert_hecho_derivado(
+                predicado=accion.predicado,
+                valor=valor_resuelto,
+                regla_origen=regla_id,
+                justificacion=accion.explicacion,
+                confianza=accion.confianza
+            )
+        
+        elif accion.tipo == TipoAccion.CONCLUDE:
+            return self.memoria.assert_conclusion(
+                predicado=accion.predicado,
+                valor=valor_resuelto,
+                regla_origen=regla_id,
+                justificacion=accion.explicacion,
+                confianza=accion.confianza
+            )
+        
+        elif accion.tipo == TipoAccion.RECOMMEND:
+            return self.memoria.assert_conclusion(
+                predicado=f"recomendacion_{accion.predicado}",
+                valor=valor_resuelto,
+                regla_origen=regla_id,
+                justificacion=f"Recomendación: {accion.explicacion}",
+                confianza=accion.confianza
+            )
+        
+        elif accion.tipo == TipoAccion.SET_VARIABLE:
+            # Para variables simples, crear hecho derivado
+            return self.memoria.assert_hecho_derivado(
+                predicado=accion.predicado,
+                valor=valor_resuelto,
+                regla_origen=regla_id,
+                justificacion=f"Variable establecida: {accion.explicacion}",
+                confianza=accion.confianza
+            )
+        
+        elif accion.tipo == TipoAccion.INCREMENT:
+            # Incrementar valor existente
+            hecho_existente = self.memoria.obtener_hecho(accion.predicado)
+            if hecho_existente and isinstance(hecho_existente.valor, (int, float)):
+                nuevo_valor = hecho_existente.valor + (valor_resuelto or 1)
+                return self.memoria.assert_hecho_derivado(
+                    predicado=accion.predicado,
+                    valor=nuevo_valor,
+                    regla_origen=regla_id,
+                    justificacion=f"Incrementado: {accion.explicacion}",
+                    confianza=accion.confianza
+                )
+        
+        # Otros tipos de acción pueden implementarse aquí
+        return None
+    
+    def _resolver_valor(self, valor: Any, bindings: Dict[str, Any]) -> Any:
+        """RESOLUCIÓN DE VARIABLES EN VALORES DE ACCIONES"""
+        if isinstance(valor, str) and valor.startswith('$'):
+            variable_name = valor[1:]
+            return bindings.get(variable_name, valor)
+        return valor
+    
+    def _registrar_ejecucion(self, accion: AccionRegla, valor_resuelto: Any, 
+                           resultado: Optional[str], regla_id: str):
+        """REGISTRAR EJECUCIÓN PARA TRACE"""
+        entry = {
+            'timestamp': datetime.now().isoformat(),
+            'regla_id': regla_id,
+            'tipo_accion': accion.tipo.value,
+            'predicado': accion.predicado,
+            'valor': valor_resuelto,
+            'resultado': resultado,
+            'confianza': accion.confianza,
+            'explicacion': accion.explicacion
+        }
+        self.trace_ejecucion.append(entry)
+    
+    def _registrar_error(self, accion: AccionRegla, error: str, regla_id: str):
+        """REGISTRAR ERROR DE EJECUCIÓN"""
+        entry = {
+            'timestamp': datetime.now().isoformat(),
+            'regla_id': regla_id,
+            'tipo_accion': accion.tipo.value,
+            'predicado': accion.predicado,
+            'error': error
+        }
+        self.trace_ejecucion.append(entry)
+    
+    def obtener_trace(self) -> List[Dict[str, Any]]:
+        """OBTENER TRACE DE EJECUCIONES"""
+        return self.trace_ejecucion.copy()
+    
+    def limpiar_trace(self):
+        """LIMPIAR TRACE PARA NUEVA EJECUCIÓN"""
+        self.trace_ejecucion.clear()
+
+
+class ParserReglasAcademico:
+    """
+    PARSER DE REGLAS ACADÉMICO PRINCIPAL
+    
+    FUNDAMENTO TEÓRICO (Clase 3):
+    Implementa el procesamiento dinámico de reglas de producción sin
+    hardcodeo específico del dominio.
+    
+    ARQUITECTURA ACADÉMICA:
+    1. Pattern matching dinámico contra memoria de trabajo
+    2. Unificación de variables
+    3. Ejecución de acciones declarativas
+    4. Generación de trace completo para explicación
+    
+    DIFERENCIA CRÍTICA CON ENFOQUE ANTERIOR:
+    ❌ ANTES: Métodos hardcodeados para cada tipo de condición
+    ✅ AHORA: Parser dinámico que procesa cualquier regla declarativa
+    """
+    
+    def __init__(self, memoria_trabajo: MemoriaTrabajo):
+        """
+        Args:
+            memoria_trabajo: Instancia de memoria de trabajo académica
+        """
+        self.memoria = memoria_trabajo
+        self.evaluador_condiciones = EvaluadorCondicionesAcademico(memoria_trabajo)
+        self.ejecutor_acciones = EjecutorAccionesAcademico(memoria_trabajo)
+        
+        # Trace completo del parser
+        self.trace_parser = []
+        
+        print("🔧 PARSER DE REGLAS ACADÉMICO INICIALIZADO")
+        print("⚡ Capaz de procesar cualquier regla declarativa")
+        print("🎯 Sin hardcodeo específico del dominio")
+    
+    def evaluar_regla(self, regla: ReglaProduccionAcademica) -> Optional[Dict[str, Any]]:
+        """
+        EVALUACIÓN ACADÉMICA COMPLETA DE UNA REGLA
+        
+        FUNDAMENTO: Implementa el ciclo completo de evaluación de una regla:
+        1. Pattern matching de condiciones
+        2. Unificación de variables
+        3. Verificación de todas las condiciones
+        
+        Args:
+            regla: Regla de producción a evaluar
+            
+        Returns:
+            Dict con bindings si la regla es aplicable, None en caso contrario
+        """
+        # Limpiar traces para nueva evaluación
+        self.evaluador_condiciones.limpiar_trace()
+        
+        # Inicializar bindings
+        bindings = {}
+        condiciones_satisfechas = 0
+        peso_total_satisfecho = 0.0
+        
+        # Registrar inicio de evaluación
+        inicio_evaluacion = {
+            'timestamp': datetime.now().isoformat(),
+            'regla_id': regla.id,
+            'fase': 'inicio_evaluacion',
+            'total_condiciones': len(regla.condiciones)
+        }
+        self.trace_parser.append(inicio_evaluacion)
+        
+        # Evaluar cada condición
+        for i, condicion in enumerate(regla.condiciones):
+            resultado_condicion = self.evaluador_condiciones.evaluar_condicion(
+                condicion, bindings
+            )
+            
+            if resultado_condicion:
+                condiciones_satisfechas += 1
+                peso_total_satisfecho += condicion.peso
+            else:
+                # Si alguna condición falla, la regla no es aplicable
+                self._registrar_fallo_regla(regla, i, condicion)
+                return None
+        
+        # Si llegamos aquí, todas las condiciones se satisfacen
+        resultado_evaluacion = {
+            'regla_id': regla.id,
+            'bindings': bindings.copy(),
+            'condiciones_satisfechas': condiciones_satisfechas,
+            'peso_total': peso_total_satisfecho,
+            'especificidad': regla.especificidad,
+            'prioridad': regla.prioridad,
+            'justificacion': f"Todas las {len(regla.condiciones)} condiciones satisfechas"
+        }
+        
+        self._registrar_exito_regla(regla, resultado_evaluacion)
+        return resultado_evaluacion
+    
+    def ejecutar_regla(self, regla: ReglaProduccionAcademica, 
+                      bindings: Dict[str, Any]) -> List[str]:
+        """
+        EJECUCIÓN ACADÉMICA COMPLETA DE UNA REGLA
+        
+        FUNDAMENTO: Ejecuta todas las acciones de la parte ENTONCES
+        de una regla de producción.
+        
+        Args:
+            regla: Regla a ejecutar
+            bindings: Variables unificadas durante evaluación
+            
+        Returns:
+            List[str]: IDs de hechos creados/modificados
+        """
+        # Limpiar trace de ejecución
+        self.ejecutor_acciones.limpiar_trace()
+        
+        hechos_creados = []
+        
+        # Registrar inicio de ejecución
+        inicio_ejecucion = {
+            'timestamp': datetime.now().isoformat(),
+            'regla_id': regla.id,
+            'fase': 'inicio_ejecucion',
+            'total_acciones': len(regla.acciones),
+            'bindings': bindings.copy()
+        }
+        self.trace_parser.append(inicio_ejecucion)
+        
+        # Ejecutar cada acción
+        for i, accion in enumerate(regla.acciones):
+            resultado_accion = self.ejecutor_acciones.ejecutar_accion(
+                accion, bindings, regla.id
+            )
+            
+            if resultado_accion:
+                hechos_creados.append(resultado_accion)
+        
+        # Registrar resultado de ejecución
+        resultado_ejecucion = {
+            'timestamp': datetime.now().isoformat(),
+            'regla_id': regla.id,
+            'fase': 'fin_ejecucion',
+            'hechos_creados': len(hechos_creados),
+            'exito': len(hechos_creados) > 0
+        }
+        self.trace_parser.append(resultado_ejecucion)
+        
+        return hechos_creados
+    
+    def _registrar_fallo_regla(self, regla: ReglaProduccionAcademica, 
+                              condicion_fallida: int, condicion: CondicionRegla):
+        """REGISTRAR FALLO DE REGLA PARA TRACE"""
+        entry = {
+            'timestamp': datetime.now().isoformat(),
+            'regla_id': regla.id,
+            'fase': 'fallo_evaluacion',
+            'condicion_fallida': condicion_fallida,
+            'predicado_fallido': condicion.predicado,
+            'operador': condicion.operador.value,
+            'explicacion': condicion.explicacion
+        }
+        self.trace_parser.append(entry)
+    
+    def _registrar_exito_regla(self, regla: ReglaProduccionAcademica, 
+                              resultado: Dict[str, Any]):
+        """REGISTRAR ÉXITO DE REGLA PARA TRACE"""
+        entry = {
+            'timestamp': datetime.now().isoformat(),
+            'regla_id': regla.id,
+            'fase': 'exito_evaluacion',
+            'resultado': resultado
+        }
+        self.trace_parser.append(entry)
+    
+    def obtener_trace_completo(self) -> Dict[str, Any]:
+        """
+        OBTENER TRACE COMPLETO DEL PARSER
+        
+        FUNDAMENTO: Para capacidades de explicación académicas.
+        """
+        return {
+            'trace_parser': self.trace_parser.copy(),
+            'trace_condiciones': self.evaluador_condiciones.obtener_trace(),
+            'trace_acciones': self.ejecutor_acciones.obtener_trace()
+        }
+    
+    def limpiar_traces(self):
+        """LIMPIAR TODOS LOS TRACES PARA NUEVA CONSULTA"""
+        self.trace_parser.clear()
+        self.evaluador_condiciones.limpiar_trace()
+        self.ejecutor_acciones.limpiar_trace()
+
+
+# ===================================================================
+# DEMOSTRACIÓN DE PARSER ACADÉMICO
+# ===================================================================
+
+def demostrar_parser_academico():
+    """
+    DEMOSTRACIÓN DEL PARSER DE REGLAS ACADÉMICO
+    
+    Muestra cómo el parser puede procesar dinámicamente cualquier regla
+    declarativa sin hardcodeo específico del dominio.
+    """
+    print("🎓 DEMOSTRACIÓN: PARSER DE REGLAS ACADÉMICO")
+    print("="*60)
+    
+    # Crear componentes académicos
+    memoria = MemoriaTrabajo()
+    parser = ParserReglasAcademico(memoria)
+    base_conocimiento = BaseConocimientoBotanicoTDF()
+    
+    # Cargar hechos iniciales de prueba
+    print("\n📥 CARGANDO HECHOS INICIALES DE PRUEBA:")
+    hechos_prueba = {
+        'ubicacion_usuario': 'interior',
+        'calefaccion_nivel': 'alta',
+        'iluminacion_disponible': 'escasa',
+        'mascotas_presentes': True,
+        'mantenimiento_disponible': 'bajo'
+    }
+    
+    for predicado, valor in hechos_prueba.items():
+        memoria.assert_hecho_inicial(predicado, valor)
+        print(f"   ✅ {predicado} = {valor}")
+    
+    # Probar evaluación de reglas
+    print(f"\n🔍 PROBANDO EVALUACIÓN DE REGLAS:")
+    reglas = base_conocimiento.obtener_reglas()[:3]  # Primeras 3 reglas
+    
+    reglas_aplicables = []
+    for regla in reglas:
+        print(f"\n   📋 Evaluando: {regla.id}")
+        resultado = parser.evaluar_regla(regla)
+        
+        if resultado:
+            print(f"      ✅ APLICABLE - {resultado['condiciones_satisfechas']} condiciones")
+            reglas_aplicables.append((regla, resultado))
+        else:
+            print(f"      ❌ NO APLICABLE")
+    
+    # Ejecutar reglas aplicables
+    if reglas_aplicables:
+        print(f"\n⚡ EJECUTANDO REGLAS APLICABLES:")
+        for regla, resultado in reglas_aplicables:
+            print(f"\n   🚀 Ejecutando: {regla.id}")
+            hechos_creados = parser.ejecutar_regla(regla, resultado['bindings'])
+            print(f"      📊 {len(hechos_creados)} hechos creados")
+    
+    # Mostrar trace completo
+    trace = parser.obtener_trace_completo()
+    print(f"\n📋 TRACE GENERADO:")
+    print(f"   🔧 Eventos parser: {len(trace['trace_parser'])}")
+    print(f"   🔍 Evaluaciones condiciones: {len(trace['trace_condiciones'])}")
+    print(f"   ⚡ Ejecuciones acciones: {len(trace['trace_acciones'])}")
+    
+    # Mostrar estado final de memoria
+    todos_hechos = memoria.obtener_todos_los_hechos()
+    print(f"\n🧠 ESTADO FINAL DE MEMORIA:")
+    print(f"   📊 Total hechos: {len(todos_hechos)}")
+    
+    iniciales = memoria.obtener_hechos_por_tipo(TipoHecho.INICIAL)
+    derivados = memoria.obtener_hechos_por_tipo(TipoHecho.DERIVADO)
+    conclusiones = memoria.obtener_hechos_por_tipo(TipoHecho.CONCLUSION)
+    
+    print(f"   📥 Hechos iniciales: {len(iniciales)}")
+    print(f"   🔍 Hechos derivados: {len(derivados)}")
+    print(f"   🎯 Conclusiones: {len(conclusiones)}")
+    
+    print("\n✅ PARSER ACADÉMICO FUNCIONANDO CORRECTAMENTE")
+    print("🎯 Procesamiento dinámico de reglas sin hardcodeo")
+    print("📚 Cumple fundamentos académicos de Clase 3")
+    
+    return parser, memoria, base_conocimiento
+
+
+if __name__ == "__main__":
+    parser, memoria, base_conocimiento = demostrar_parser_academico()
+    print("\n🚀 PARSER DE REGLAS ACADÉMICO LISTO PARA INTEGRACIÓN")

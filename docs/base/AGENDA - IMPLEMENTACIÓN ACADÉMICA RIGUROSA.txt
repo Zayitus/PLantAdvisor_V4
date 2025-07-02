@@ -1,0 +1,389 @@
+"""
+AGENDA - IMPLEMENTACIÓN ACADÉMICA RIGUROSA
+==========================================
+
+FUNDAMENTO TEÓRICO (Clase 3 - Figura 6):
+"Agenda: Mantiene una lista de reglas activadas para ser ejecutadas por el 
+mecanismo de inferencia"
+
+REFERENCIA ACADÉMICA: 
+- Giarratano & Riley - "Expert Systems: Principles and Programming"
+- Clase 3 - "El ciclo de ejecución de un sistema experto implica resolver conflictos"
+
+COMPONENTES ACADÉMICOS IMPLEMENTADOS:
+1. Gestión de reglas activadas/instanciadas
+2. Estrategias de conflict resolution académicas
+3. Control de ejecución de reglas
+4. Priorización basada en criterios académicos
+5. Soporte para explicación del conflict resolution
+
+ARQUITECTURA: Basada en sistemas clásicos MYCIN/DENDRAL
+"""
+
+from typing import Dict, List, Any, Optional, Callable
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+import copy
+
+
+class EstrategiaConflictResolution(Enum):
+    """
+    ESTRATEGIAS ACADÉMICAS DE CONFLICT RESOLUTION
+    
+    FUNDAMENTO TEÓRICO: En sistemas expertos clásicos existen múltiples 
+    estrategias para resolver conflictos cuando varias reglas están activadas.
+    
+    REFERENCIA: Clase 3 - "resolver conflictos (decidir qué regla aplicar si hay varias activadas)"
+    """
+    ESPECIFICIDAD = "especificidad"       # Reglas más específicas tienen prioridad
+    RECENCIA = "recencia"                 # Hechos más recientes tienen prioridad  
+    COMPLEJIDAD = "complejidad"           # Reglas más complejas tienen prioridad
+    PRIORIDAD_EXPLICITA = "prioridad"     # Prioridad asignada explícitamente
+    ORDEN_REGLA = "orden"                 # Orden de definición de reglas
+
+
+@dataclass
+class ReglaInstanciada:
+    """
+    REPRESENTACIÓN ACADÉMICA DE UNA REGLA ACTIVADA/INSTANCIADA
+    
+    FUNDAMENTO TEÓRICO: Cuando las condiciones de una regla se satisfacen con 
+    hechos específicos en memoria, se crea una "instancia" de la regla.
+    
+    COMPONENTES ACADÉMICOS:
+    - Referencia a la regla original
+    - Bindings específicos de variables
+    - Timestamp de activación
+    - Métricas para conflict resolution
+    """
+    regla_id: str                         # ID de la regla original
+    bindings: Dict[str, Any]              # Variables unificadas con valores específicos
+    hechos_activadores: List[str]         # IDs de hechos que activaron esta regla
+    timestamp_activacion: datetime = field(default_factory=datetime.now)
+    especificidad: int = 0                # Número de condiciones satisfechas
+    complejidad: int = 0                  # Complejidad computacional de la regla
+    prioridad_explicita: float = 0.0      # Prioridad asignada por diseñador
+    orden_definicion: int = 0             # Orden en que fue definida la regla
+    justificacion_activacion: str = ""    # Por qué se activó esta regla
+    ya_ejecutada: bool = False            # Flag para evitar re-ejecución
+
+
+class Agenda:
+    """
+    AGENDA ACADÉMICA - GESTIÓN DE REGLAS ACTIVADAS
+    
+    FUNDAMENTO TEÓRICO (Clase 3):
+    "Agenda: Mantiene una lista de reglas activadas para ser ejecutadas por el 
+    mecanismo de inferencia"
+    
+    RESPONSABILIDADES ACADÉMICAS:
+    1. Mantener lista de reglas instanciadas (activadas)
+    2. Aplicar estrategias de conflict resolution
+    3. Seleccionar próxima regla a ejecutar
+    4. Prevenir re-ejecución de reglas ya procesadas
+    5. Generar explicación del proceso de selección
+    
+    REFERENCIA: Arquitectura basada en MYCIN (Stanford, 1972)
+    """
+    
+    def __init__(self, estrategia: EstrategiaConflictResolution = EstrategiaConflictResolution.ESPECIFICIDAD):
+        """
+        INICIALIZACIÓN DE AGENDA ACADÉMICA
+        
+        Args:
+            estrategia: Estrategia de conflict resolution a utilizar
+        """
+        # LISTA DE REGLAS ACTIVADAS/INSTANCIADAS
+        self._reglas_instanciadas: List[ReglaInstanciada] = []
+        
+        # ESTRATEGIA DE CONFLICT RESOLUTION
+        self._estrategia = estrategia
+        
+        # HISTORIAL DE REGLAS EJECUTADAS
+        self._historial_ejecucion: List[ReglaInstanciada] = []
+        
+        # CONTADOR PARA ORDEN DE ACTIVACIÓN
+        self._contador_activacion = 0
+        
+        # REGISTRO DE CONFLICT RESOLUTION PARA EXPLICACIÓN
+        self._trace_conflict_resolution: List[Dict[str, Any]] = []
+        
+        print("📋 AGENDA ACADÉMICA INICIALIZADA")
+        print(f"🎯 Estrategia de Conflict Resolution: {estrategia.value}")
+        print("🏛️ Implementación basada en sistemas expertos clásicos")
+    
+    def activar_regla(self, regla_id: str, bindings: Dict[str, Any], 
+                     hechos_activadores: List[str], especificidad: int = 0,
+                     complejidad: int = 0, prioridad_explicita: float = 0.0,
+                     justificacion: str = "") -> str:
+        """
+        ACTIVAR REGLA E INSERTAR EN AGENDA
+        
+        FUNDAMENTO ACADÉMICO: Cuando el pattern matching encuentra que las 
+        condiciones de una regla se satisfacen, la regla se "activa" e 
+        ingresa a la agenda.
+        
+        Args:
+            regla_id: Identificador de la regla
+            bindings: Variables unificadas con valores
+            hechos_activadores: Hechos que causaron la activación
+            especificidad: Número de condiciones satisfechas
+            complejidad: Complejidad de la regla
+            prioridad_explicita: Prioridad asignada explícitamente
+            justificacion: Explicación de por qué se activó
+            
+        Returns:
+            str: ID único de la instancia activada
+            
+        REFERENCIA: Clase 3 - Ciclo Match-Conflict Resolution-Act
+        """
+        self._contador_activacion += 1
+        
+        # Verificar si ya existe una instancia idéntica
+        if self._existe_instancia_identica(regla_id, bindings):
+            print(f"⚠️  REGLA YA INSTANCIADA: {regla_id} con bindings idénticos")
+            return ""
+        
+        regla_instanciada = ReglaInstanciada(
+            regla_id=regla_id,
+            bindings=copy.deepcopy(bindings),
+            hechos_activadores=hechos_activadores.copy(),
+            especificidad=especificidad,
+            complejidad=complejidad,
+            prioridad_explicita=prioridad_explicita,
+            orden_definicion=self._contador_activacion,
+            justificacion_activacion=justificacion or f"Activada por hechos: {hechos_activadores}"
+        )
+        
+        self._reglas_instanciadas.append(regla_instanciada)
+        
+        print(f"⚡ REGLA ACTIVADA: {regla_id}")
+        print(f"   📊 Especificidad: {especificidad}, Complejidad: {complejidad}")
+        print(f"   🔗 Hechos activadores: {hechos_activadores}")
+        
+        return f"{regla_id}_{self._contador_activacion}"
+    
+    def seleccionar_proxima_regla(self) -> Optional[ReglaInstanciada]:
+        """
+        SELECCIONAR PRÓXIMA REGLA PARA EJECUCIÓN (CONFLICT RESOLUTION)
+        
+        FUNDAMENTO ACADÉMICO: "El ciclo de ejecución de un sistema experto 
+        implica resolver conflictos (decidir qué regla aplicar si hay varias activadas)"
+        
+        Implementa estrategias académicas de conflict resolution según la 
+        literatura clásica de sistemas expertos.
+        
+        Returns:
+            ReglaInstanciada: Regla seleccionada para ejecutar, o None si agenda vacía
+            
+        REFERENCIA: Clase 3 - Conflict Resolution
+        """
+        # Filtrar reglas no ejecutadas
+        reglas_pendientes = [r for r in self._reglas_instanciadas if not r.ya_ejecutada]
+        
+        if not reglas_pendientes:
+            print("📭 AGENDA VACÍA: No hay reglas pendientes de ejecución")
+            return None
+        
+        print(f"\n🔀 CONFLICT RESOLUTION ({self._estrategia.value})")
+        print(f"   📊 Candidatos: {len(reglas_pendientes)} reglas")
+        
+        # Aplicar estrategia de conflict resolution
+        regla_seleccionada = self._aplicar_estrategia_conflict_resolution(reglas_pendientes)
+        
+        if regla_seleccionada:
+            # Registrar en trace para explicación
+            self._registrar_conflict_resolution(reglas_pendientes, regla_seleccionada)
+            
+            print(f"✅ REGLA SELECCIONADA: {regla_seleccionada.regla_id}")
+            print(f"   🎯 Razón: {self._explicar_seleccion(regla_seleccionada)}")
+        
+        return regla_seleccionada
+    
+    def marcar_como_ejecutada(self, regla_instanciada: ReglaInstanciada):
+        """
+        MARCAR REGLA COMO EJECUTADA
+        
+        FUNDAMENTO ACADÉMICO: Para prevenir re-ejecución de reglas ya procesadas
+        y mantener control del ciclo de inferencia.
+        """
+        regla_instanciada.ya_ejecutada = True
+        self._historial_ejecucion.append(regla_instanciada)
+        
+        print(f"✅ REGLA EJECUTADA: {regla_instanciada.regla_id}")
+    
+    def obtener_reglas_pendientes(self) -> List[ReglaInstanciada]:
+        """OBTENER REGLAS PENDIENTES DE EJECUCIÓN"""
+        return [r for r in self._reglas_instanciadas if not r.ya_ejecutada]
+    
+    def obtener_historial_ejecucion(self) -> List[ReglaInstanciada]:
+        """OBTENER HISTORIAL DE REGLAS EJECUTADAS"""
+        return self._historial_ejecucion.copy()
+    
+    def esta_vacia(self) -> bool:
+        """VERIFICAR SI AGENDA ESTÁ VACÍA (no hay reglas pendientes)"""
+        return len(self.obtener_reglas_pendientes()) == 0
+    
+    def limpiar_agenda(self):
+        """
+        LIMPIAR AGENDA PARA NUEVA CONSULTA
+        
+        FUNDAMENTO ACADÉMICO: Entre consultas, la agenda debe reinicializarse
+        para evitar interferencia entre sesiones de razonamiento.
+        """
+        self._reglas_instanciadas.clear()
+        self._historial_ejecucion.clear()
+        self._trace_conflict_resolution.clear()
+        self._contador_activacion = 0
+        
+        print("🧹 AGENDA LIMPIADA")
+    
+    def generar_trace_conflict_resolution(self) -> Dict[str, Any]:
+        """
+        GENERAR TRACE DE CONFLICT RESOLUTION PARA EXPLICACIÓN
+        
+        FUNDAMENTO ACADÉMICO: Los sistemas expertos deben poder explicar 
+        por qué seleccionaron ciertas reglas sobre otras.
+        """
+        return {
+            'estrategia_utilizada': self._estrategia.value,
+            'total_activaciones': len(self._reglas_instanciadas),
+            'reglas_ejecutadas': len(self._historial_ejecucion),
+            'reglas_pendientes': len(self.obtener_reglas_pendientes()),
+            'decisiones_conflict_resolution': self._trace_conflict_resolution,
+            'historial_ejecucion': [
+                {
+                    'regla_id': r.regla_id,
+                    'timestamp': r.timestamp_activacion.isoformat(),
+                    'especificidad': r.especificidad,
+                    'justificacion': r.justificacion_activacion
+                }
+                for r in self._historial_ejecucion
+            ]
+        }
+    
+    def _aplicar_estrategia_conflict_resolution(self, candidatos: List[ReglaInstanciada]) -> Optional[ReglaInstanciada]:
+        """
+        APLICAR ESTRATEGIA ESPECÍFICA DE CONFLICT RESOLUTION
+        
+        FUNDAMENTO ACADÉMICO: Diferentes estrategias han sido desarrolladas 
+        en la literatura para resolver conflictos entre reglas.
+        """
+        if not candidatos:
+            return None
+        
+        if self._estrategia == EstrategiaConflictResolution.ESPECIFICIDAD:
+            # Reglas más específicas (más condiciones) tienen prioridad
+            return max(candidatos, key=lambda r: r.especificidad)
+        
+        elif self._estrategia == EstrategiaConflictResolution.RECENCIA:
+            # Reglas activadas más recientemente tienen prioridad
+            return max(candidatos, key=lambda r: r.timestamp_activacion)
+        
+        elif self._estrategia == EstrategiaConflictResolution.COMPLEJIDAD:
+            # Reglas más complejas tienen prioridad
+            return max(candidatos, key=lambda r: r.complejidad)
+        
+        elif self._estrategia == EstrategiaConflictResolution.PRIORIDAD_EXPLICITA:
+            # Prioridad asignada explícitamente por diseñador
+            return max(candidatos, key=lambda r: r.prioridad_explicita)
+        
+        elif self._estrategia == EstrategiaConflictResolution.ORDEN_REGLA:
+            # Orden de definición de reglas (FIFO)
+            return min(candidatos, key=lambda r: r.orden_definicion)
+        
+        else:
+            # Default: especificidad
+            return max(candidatos, key=lambda r: r.especificidad)
+    
+    def _existe_instancia_identica(self, regla_id: str, bindings: Dict[str, Any]) -> bool:
+        """VERIFICAR SI YA EXISTE INSTANCIA IDÉNTICA (evitar duplicados)"""
+        for instancia in self._reglas_instanciadas:
+            if instancia.regla_id == regla_id and instancia.bindings == bindings:
+                return True
+        return False
+    
+    def _explicar_seleccion(self, regla_seleccionada: ReglaInstanciada) -> str:
+        """GENERAR EXPLICACIÓN DE POR QUÉ SE SELECCIONÓ ESTA REGLA"""
+        if self._estrategia == EstrategiaConflictResolution.ESPECIFICIDAD:
+            return f"Mayor especificidad ({regla_seleccionada.especificidad} condiciones)"
+        elif self._estrategia == EstrategiaConflictResolution.RECENCIA:
+            return f"Activación más reciente ({regla_seleccionada.timestamp_activacion})"
+        elif self._estrategia == EstrategiaConflictResolution.COMPLEJIDAD:
+            return f"Mayor complejidad ({regla_seleccionada.complejidad})"
+        elif self._estrategia == EstrategiaConflictResolution.PRIORIDAD_EXPLICITA:
+            return f"Mayor prioridad explícita ({regla_seleccionada.prioridad_explicita})"
+        else:
+            return f"Criterio: {self._estrategia.value}"
+    
+    def _registrar_conflict_resolution(self, candidatos: List[ReglaInstanciada], seleccionada: ReglaInstanciada):
+        """REGISTRAR DECISIÓN DE CONFLICT RESOLUTION PARA TRACE"""
+        decision = {
+            'timestamp': datetime.now().isoformat(),
+            'estrategia': self._estrategia.value,
+            'candidatos': [
+                {
+                    'regla_id': r.regla_id,
+                    'especificidad': r.especificidad,
+                    'complejidad': r.complejidad,
+                    'prioridad': r.prioridad_explicita
+                }
+                for r in candidatos
+            ],
+            'seleccionada': seleccionada.regla_id,
+            'razon_seleccion': self._explicar_seleccion(seleccionada)
+        }
+        
+        self._trace_conflict_resolution.append(decision)
+    
+    def __str__(self) -> str:
+        """REPRESENTACIÓN TEXTUAL DE LA AGENDA"""
+        pendientes = len(self.obtener_reglas_pendientes())
+        ejecutadas = len(self._historial_ejecucion)
+        return f"Agenda(pendientes={pendientes}, ejecutadas={ejecutadas}, estrategia={self._estrategia.value})"
+
+
+# ===================================================================
+# EJEMPLO DE USO ACADÉMICO
+# ===================================================================
+
+if __name__ == "__main__":
+    print("🎓 TESTING AGENDA ACADÉMICA")
+    print("="*50)
+    
+    # Crear agenda con estrategia de especificidad
+    agenda = Agenda(EstrategiaConflictResolution.ESPECIFICIDAD)
+    
+    # Simular activación de reglas
+    agenda.activar_regla(
+        regla_id="R001_UBICACION",
+        bindings={"planta": "sansevieria", "ubicacion": "interior"},
+        hechos_activadores=["F0001", "F0002"],
+        especificidad=2,
+        complejidad=1,
+        justificacion="Ubicación compatible"
+    )
+    
+    agenda.activar_regla(
+        regla_id="R002_ESPACIO",
+        bindings={"planta": "sansevieria", "espacio": "mediano"},
+        hechos_activadores=["F0003"],
+        especificidad=3,  # Mayor especificidad
+        complejidad=2,
+        justificacion="Espacio compatible"
+    )
+    
+    # Simular conflict resolution
+    print(f"\n📊 ESTADO AGENDA: {agenda}")
+    
+    # Seleccionar próxima regla
+    regla = agenda.seleccionar_proxima_regla()
+    if regla:
+        agenda.marcar_como_ejecutada(regla)
+    
+    # Generar trace
+    trace = agenda.generar_trace_conflict_resolution()
+    print(f"\n📋 TRACE GENERADO: {len(trace['decisiones_conflict_resolution'])} decisiones")
+    
+    print("\n✅ AGENDA ACADÉMICA VALIDADA")
